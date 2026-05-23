@@ -1,10 +1,14 @@
 import json
+from typing import Literal
 from dotenv import load_dotenv
+from pydantic_ai.models import Model
 import requests
 import datetime
 import os
+import time
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent , ModelSettings, settings
+from pydantic_ai import Agent , ModelSettings, UnexpectedModelBehavior, settings
+
 
 from pydantic_ai.providers.ollama import OllamaProvider
 from pydantic_ai.providers.mistral import MistralProvider
@@ -13,6 +17,7 @@ from pydantic_ai.models.ollama import OllamaModel
 
 from report import *
 from qdrant_client import qdrant_client
+from logger  import logger
 
 
 load_dotenv()
@@ -142,7 +147,7 @@ def createPostList(account_ids: list):
     return texts
 
 
-def createAgent()-> Agent:
+def createAgent(modelType : Literal['mistral', 'ollama'] = 'mistral')-> Agent:
     '''
     Simple Pydantic agent that returns a text output
     '''
@@ -152,14 +157,22 @@ def createAgent()-> Agent:
         with open("./reportAgentSPrompt.txt", "r") as fl:
             sysPrompt= fl.read()
 
-        ollamaModel = OllamaModel(
-            model_name=os.getenv("OLLAMA_MODEL") or "ministral-3:8b",
-            provider=OllamaProvider(base_url=os.getenv("OLLAMA_URL") or "http://localhost:11434/v1")
-        )
+        model : Model
+        if modelType == "ollama":
+            model = OllamaModel(
+                model_name=os.getenv("OLLAMA_MODEL") or "ministral-3:8b",
+                provider=OllamaProvider(base_url=os.getenv("OLLAMA_URL") or "http://localhost:11434/v1")
+            )
+        if modelType == "mistral":
+            model = MistralModel(
+                model_name =  os.getenv("MISTRAL_SMALL") or "mistral-small-latest",
+                provider = MistralProvider(api_key=os.getenv("MISTRAL_API_KEY"))
+            )
         agent = Agent(
-            model= ollamaModel,
+            model= model,
             instructions= sysPrompt,
-            model_settings= ModelSettings(temperature=0.2)
+            model_settings= ModelSettings(temperature=0.2),
+            retries=3
         )
 
         return agent
@@ -246,8 +259,9 @@ def example_use():
     with open("strOutput.json", "w") as fl:
         fl.write(json.dumps(extr.output.model_dump()))
 
-async def generateReport():
+async def x_agent() -> dict:
     accounts: dict= {}
+    logger.info("\033[91m[x-agent] Starting Generating Report\033[0m")
     with open("./accountsX.json" , "r") as fl:
         try:
             accounts = json.loads(fl.read())
@@ -255,7 +269,7 @@ async def generateReport():
             print(f"Exception {e}")
     texts = createPostList(accounts["account_ids"])
 
-    agent= createAgent()
+    agent= createAgent(modelType = 'mistral')
 
     input = {
         "texts" : texts
@@ -265,46 +279,132 @@ async def generateReport():
         fl.write(json.dumps(input))
 
     finalReport = Report()
-    outputStr = f"Report {finalReport.created_at}\n"
+    output ={
+        "fighters" : f"Report {finalReport.created_at}\n",
+        "events" : f"Report {finalReport.created_at}\n"
+    } 
 
-    report= await agent.run(
+    extractionSysPrompt = ''
+    with open('./entitiesExtractionSysPrompt.txt', 'r') as fl:
+        extractionSysPrompt = fl.read()
+
+        if len(extractionSysPrompt) == 0:
+            raise Exception("Could not load Entities Extraction System Prompt...")
+    report =  await agent.run(
         user_prompt= "Below follow the posts: " + json.dumps(input) ,
-        instructions="""
-You are a Professional Mixed Martial Arts (MMA) Reporter that analyzes multiple X.com posts from selected MMA media accounts, and then generate a daily report on the non-gossip news of the MMA world.
-Take note that most of the posts come from accounts that are not professional MMA journalists, rather than media that deliver fast news
-
-You must get all the Fighter Names and Event names mentioned in texts of the posts given by the USER.
-        """,
+        instructions=  extractionSysPrompt,
         output_type= ReportComponents
     )
 
-    fighterPrompt=f"Get All the information available for the fighter asked for by the user and generate the reports according to the contents of the texts of the post provided by the user"
-    for fighter in report.fighters:
-        fighterReports = await agent.run(
-            user_prompt= f"Fill the in information for the Fighter : {fighter.name} from the given posts. Below follow the posts: " + json.dumps(input),
-            output_type= FighterReports,
-            instructions=fighterPrompt
-        )
-        finalReport.fighters[fighter.name] = fighterReports.output.reports
-        if len(fighterReports.output.reports)>0:
-            for report in fighterReports.output.reports:
-                
+    if len(report.output.fighters) >0:
+        logger.info(f'[\033[91mx-agent] Found {len(report.output.fighters)}\033[0m')
+    if len(report.output.events) >0:
+        logger.info(f'[\033[91mx-agent] Found {len(report.output.events)}\033[0m')
 
-    eventPrompt=f"Get All the information available for the event asked for by the user and generate the reports according to the contents of the texts of the post provided by the user"
-    for event in report.events:
-        eventReports = await agent.run(
-            user_prompt= f"Fill the in information for the event : {event.name} from the given posts. Below follow the posts: " + json.dumps(input),
-            output_type= EventReports,
-            instructions=eventPrompt
-        )
-        finalReport.events[event.name] = eventReports.output.reports
+    fighterPrompt = ''
+    with open('./fighterReportsSysPrompt.txt', 'r') as fl:
+        fighterPrompt = fl.read()
+        if len(fighterPrompt) ==0:
+            raise Exception("Could not load Fighter Reports System Prompt...")
 
-    finalReport.created_at = datetime.datetime.now().strftime("%A %d %B %Y")
+    output['fighters'] += "`FIGHTS:`\n"
 
+    logger.info("\033[91m[x-agent] Starting generating per Fighter Reports\033[0m")
+    smallcounter =0
+
+    time.sleep(5)
+    for fighter in report.output.fighters:
+        # if smallcounter == 5:
+        #     break
+        logger.info(f"\033[91m[x-agent] [Fighter] Generating report for fighter : {fighter.fullname} --- {smallcounter+1}/{len(report.output.fighters)}\033[0m")
+        try:
+            fighterReports =  await agent.run(
+                user_prompt= f"Fill the in information for the Fighter : {fighter.fullname} from the given posts. Below follow the posts: " + json.dumps(input),
+                output_type= FighterReports,
+                instructions=fighterPrompt
+            )
+
+            time.sleep(5)
+            finalReport.fighters[fighter.fullname] = fighterReports.output.reports
+
+            if len(fighterReports.output.reports)>0:
+                output['fighters'] += f"*{fighter.fullname}*:\n"
+                for smallReps in fighterReports.output.reports:
+                    output['fighters']+= f"\t- {smallReps}\n"
+        except UnexpectedModelBehavior as e:
+            logger.info(f"[x-agent] Encountered Error: {e}")
+            continue
+        smallcounter+=1
+
+        logger.info(f"\033[91m[x-agent] [Fighter] Completed report for fighter : {fighter.fullname} ✅\033[0m")
+
+    eventPrompt=''
+    with open('./eventReportsSysPrompt.txt', 'r') as fl:
+        eventPrompt = fl.read()
+        if len(eventPrompt) ==0:
+            raise Exception("Could not load Event Reports System Prompt...")
+
+    output['events'] += "`EVENTS:`\n"
+
+    smallcounter = 0
+    for event in report.output.events:
+        logger.info(f"\033[91m[x-agent] [Event] Generating report for event : {event.name} --- {smallcounter+1}/{len(report.output.events)}\033[0m")
+        try:
+            eventReports =  await agent.run(
+                user_prompt= f"Fill the in information for the event : {event.name} from the given posts. Below follow the posts: " + json.dumps(input),
+                output_type= EventReports,
+                instructions=eventPrompt
+            )
+            time.sleep(5)
+
+            finalReport.events[event.name] = eventReports.output.reports
+
+            if len(eventReports.output.reports)>0:
+                output['events'] += f"*{event.name}*:\n"
+                for smallReps in eventReports.output.reports:
+                    output['events']+= f"\t- {smallReps}\n"
+        except UnexpectedModelBehavior as e:
+            logger.info(f"\n\n[x-agent] Encountered Error: {e}")
+            continue
+        smallcounter+=1
+        logger.info(f"\033[91m[x-agent] [x-agent][Event] Completed report for event : {event.name} ✅\033[0m")
+
+    logger.info("\033[91mReport Complete\033[0m")
+
+    if output["events"] == None and output['fighters'] == None:
+        return {
+            "events" : "This is empty",
+            "fighters": "This is empty"
+        }
     
-    print("Entering the agent...")
 
-async def x_agent()-> str:
+    if output['fighters'] != None:
+        output["fighters"] = output["fighters"].encode("utf-8").decode("unicode_escape")
+        with open('fighterReport.txt' , 'w') as fl:
+            fl.write(output['fighters'])
+        with open('fighterReport.txt' , 'r') as fl:
+            output['fighters'] = fl.read()
+
+    if output['events'] != None:
+        output["events"] = output["events"].encode("utf-8").decode("unicode_escape")
+        with open('eventReport.txt' , 'w') as fl:
+            fl.write(output['events'])
+        with open('eventReport.txt' , 'r') as fl:
+            output['events'] = fl.read()
+
+
+    with open('./latestReport.txt', 'w') as fl:
+        filestr = ''
+        for text in output['fighters']:
+            filestr += text
+        for text in output['events']:
+            filestr += text
+        fl.write(filestr)
+        
+    return output
+
+
+async def deprecated_x_agent()-> str:
     accounts: dict= {}
     with open("./accountsX.json" , "r") as fl:
         try:
