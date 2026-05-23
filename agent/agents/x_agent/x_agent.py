@@ -16,7 +16,6 @@ from pydantic_ai.models.mistral import MistralModel
 from pydantic_ai.models.ollama import OllamaModel
 
 from report import *
-from qdrant_client import qdrant_client
 from logger  import logger
 
 
@@ -181,85 +180,7 @@ def createAgent(modelType : Literal['mistral', 'ollama'] = 'mistral')-> Agent:
         print(e)
         raise Exception(e)
 
-
-# texts =getTodaysPostsById(id= "ChampRDS")
-#
-# textsDict = {
-#     "texts" : texts
-# }
-# with open("texts.json","w") as fl:
-#     fl.write(json.dumps(textsDict))
-
-# print(texts)
-def example_use():
-    textsDict: dict | None = None
-    with open("texts.json", "r") as fl:
-        textsDict = json.loads(fl.read())
-
-    rep_sys_prompt : str= ""
-    extr_sys_prompt : str= ""
-    with open("./reportAgentSPrompt.txt", "r") as fl:
-        rep_sys_prompt= fl.read()
-
-    with open("./fighterExtractorSprompt.txt", "r") as fl:
-        extr_sys_prompt= fl.read()
-
-    model_small = MistralModel(
-        model_name =  os.getenv("MISTRAL_SMALL") or "mistral-small-latest",
-        provider = MistralProvider(api_key=os.getenv("MISTRAL_API_KEY"))
-    )
-
-    model_mini = MistralModel(
-        model_name =  os.getenv("MINITRAL") or "mistral-small-latest",
-        provider = MistralProvider(api_key=os.getenv("MISTRAL_API_KEY"))
-    )
-
-    # summaryAgent = Agent(
-    #     model = model_small,
-    #     instructions=sys_prompt
-    # )
-    #
-    # response = summaryAgent.run_sync(json.dumps(textsDict))
-    # with open("mistral_small_output.md", "w") as fl:
-    #     fl.write(response.output)
-
-    class Fighter(BaseModel):
-        fighterName: str = Field(description= "Then name of the fighter as depicted in the report")
-        reports : list[str] = Field(description="A list of the information reported. Each bullet point must be a separate string in the list")
-
-    class Fighters(BaseModel):
-        fighters : list[Fighter] = Field(description="The total list of the depicted fighters in the  ")
-
-    class Event(BaseModel):
-        eventName: str = Field(description= "Then name of the Event as depicted in the report")
-        reports : list[str] = Field(description="A list of the information reported. Each bullet point must be a separate string in the list")
-
-    class Events(BaseModel):
-        fighters : list[Fighter] = Field(description="The total list of the depicted fighters in the  ")
-
-
-    summaryAgent = Agent(
-        model = model_mini,
-        instructions=rep_sys_prompt
-    )
-
-    fighterExtractorAgent = Agent(
-        model= model_mini,
-        instructions= extr_sys_prompt,
-        output_type= Fighters
-    )
-
-    response = summaryAgent.run_sync(json.dumps(textsDict))
-
-    with open("ministral_output.md", "w") as fl:
-        fl.write(response.output)
-
-    extr= fighterExtractorAgent.run_sync(response.output)
-
-    with open("strOutput.json", "w") as fl:
-        fl.write(json.dumps(extr.output.model_dump()))
-
-async def x_agent() -> dict:
+def x_agent() -> dict:
     accounts: dict= {}
     logger.info("\033[91m[x-agent] Starting Generating Report\033[0m")
     with open("./accountsX.json" , "r") as fl:
@@ -290,7 +211,7 @@ async def x_agent() -> dict:
 
         if len(extractionSysPrompt) == 0:
             raise Exception("Could not load Entities Extraction System Prompt...")
-    report =  await agent.run(
+    report =  agent.run_sync(
         user_prompt= "Below follow the posts: " + json.dumps(input) ,
         instructions=  extractionSysPrompt,
         output_type= ReportComponents
@@ -318,7 +239,7 @@ async def x_agent() -> dict:
         #     break
         logger.info(f"\033[91m[x-agent] [Fighter] Generating report for fighter : {fighter.fullname} --- {smallcounter+1}/{len(report.output.fighters)}\033[0m")
         try:
-            fighterReports =  await agent.run(
+            fighterReports = agent.run_sync(
                 user_prompt= f"Fill the in information for the Fighter : {fighter.fullname} from the given posts. Below follow the posts: " + json.dumps(input),
                 output_type= FighterReports,
                 instructions=fighterPrompt
@@ -350,7 +271,7 @@ async def x_agent() -> dict:
     for event in report.output.events:
         logger.info(f"\033[91m[x-agent] [Event] Generating report for event : {event.name} --- {smallcounter+1}/{len(report.output.events)}\033[0m")
         try:
-            eventReports =  await agent.run(
+            eventReports =   agent.run_sync(
                 user_prompt= f"Fill the in information for the event : {event.name} from the given posts. Below follow the posts: " + json.dumps(input),
                 output_type= EventReports,
                 instructions=eventPrompt
@@ -402,6 +323,7 @@ async def x_agent() -> dict:
         fl.write(filestr)
         
     return output
+
 
 
 async def deprecated_x_agent()-> str:
