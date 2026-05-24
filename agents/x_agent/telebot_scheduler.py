@@ -225,7 +225,7 @@ def report_no_handler( chat_id=None , message_thread_id= None):
 if __name__== "__main__":
     # bot.infinity_polling()
     
-    schedule.every().day.at("9:00").do(report_no_handler)
+    schedule.every().day.at(os.getenv("SCHEDULER_ON") or "9:00").do(report_no_handler)
 
     while True:
         schedule.run_pending()
