@@ -196,8 +196,8 @@ def x_agent() -> dict:
         "texts" : texts
     }
     
-    with open("texts.json", "w") as fl:
-        fl.write(json.dumps(input))
+    # with open("texts.json", "w") as fl:
+    #     fl.write(json.dumps(input))
 
     finalReport = Report()
     output ={
@@ -301,20 +301,16 @@ def x_agent() -> dict:
 
     if output['fighters'] != None:
         output["fighters"] = output["fighters"].encode("utf-8").decode("unicode_escape")
-        with open('fighterReport.txt' , 'w') as fl:
+        with open('./misc/fighterReport.txt' , 'w') as fl:
             fl.write(output['fighters'])
-        with open('fighterReport.txt' , 'r') as fl:
-            output['fighters'] = fl.read()
 
     if output['events'] != None:
         output["events"] = output["events"].encode("utf-8").decode("unicode_escape")
-        with open('eventReport.txt' , 'w') as fl:
+        with open('./misc/eventReport.txt' , 'w') as fl:
             fl.write(output['events'])
-        with open('eventReport.txt' , 'r') as fl:
-            output['events'] = fl.read()
 
 
-    with open('./latestReport.txt', 'w') as fl:
+    with open('./misc/latestReport.txt', 'w') as fl:
         filestr = ''
         for text in output['fighters']:
             filestr += text
