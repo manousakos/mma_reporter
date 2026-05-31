@@ -3,6 +3,7 @@ import telebot
 import os 
 from dotenv import load_dotenv
 import logging
+from logger import logger
 from x_agent import x_agent
 import time
 import schedule
@@ -234,7 +235,8 @@ if __name__== "__main__":
 
     while True:
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(60)
+        logger.info("waiting...")
 
     # report_no_handler(os.getenv("PERSONAL_CHAT_ID"), message_thread_id=None)
     # report_no_handler(os.getenv("BUSINNES_MEN_CHAT_ID"), message_thread_id=os.getenv("BUSINNES_MEN_MSG_THREAD_ID"))

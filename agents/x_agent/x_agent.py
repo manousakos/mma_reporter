@@ -317,3 +317,6 @@ def x_agent() -> dict:
     return output
 
     return response.output
+
+if __name__ == "__main__":
+    x_agent()
