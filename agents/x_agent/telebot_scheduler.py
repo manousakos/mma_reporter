@@ -173,9 +173,14 @@ def report_no_handler( chat_id=None , message_thread_id= None):
 
     responseMD:str = ''
     # msg_thread_id= None if not message_thread_id else message_thread_id 
-    msg_thread_id= os.getenv("BUSINNES_MEN_MSG_THREAD_ID")
-    # chat_id: int = chat_id
-    chat_id: int = os.getenv("BUSINNES_MEN_CHAT_ID")
+    msg_thread_id= ""
+    chat_id: int = 0
+    if os.getenv("MESSAGE_MODE") == "group":
+        msg_thread_id= os.getenv("BUSINNES_MEN_MSG_THREAD_ID")
+        chat_id: int = int(os.getenv("BUSINNES_MEN_CHAT_ID"))
+    else:
+        msg_thread_id= None
+        chat_id: int = int(os.getenv("PERSONAL_CHAT_ID"))
 
     try:
         send_message(
@@ -225,7 +230,7 @@ def report_no_handler( chat_id=None , message_thread_id= None):
 if __name__== "__main__":
     # bot.infinity_polling()
     
-    schedule.every().day.at(os.getenv("SCHEDULER_ON") or "9:00").do(report_no_handler)
+    schedule.every().day.at(os.getenv("SCHEDULER_ON") ).do(report_no_handler)
 
     while True:
         schedule.run_pending()

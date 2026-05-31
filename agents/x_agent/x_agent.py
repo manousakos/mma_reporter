@@ -6,7 +6,6 @@ import requests
 import datetime
 import os
 import time
-from pydantic import BaseModel, Field
 from pydantic_ai import Agent , ModelSettings, UnexpectedModelBehavior, settings
 
 
@@ -153,7 +152,7 @@ def createAgent(modelType : Literal['mistral', 'ollama'] = 'mistral')-> Agent:
     try:
 
         sysPrompt: str=""
-        with open("./reportAgentSPrompt.txt", "r") as fl:
+        with open("./prompts/reportAgentSPrompt.txt", "r") as fl:
             sysPrompt= fl.read()
 
         model : Model
@@ -196,9 +195,6 @@ def x_agent() -> dict:
         "texts" : texts
     }
     
-    with open("texts.json", "w") as fl:
-        fl.write(json.dumps(input))
-
     finalReport = Report()
     output ={
         "fighters" : f"Report {finalReport.created_at}\n",
@@ -206,7 +202,7 @@ def x_agent() -> dict:
     } 
 
     extractionSysPrompt = ''
-    with open('./entitiesExtractionSysPrompt.txt', 'r') as fl:
+    with open('./prompts/entitiesExtractionSysPrompt.txt', 'r') as fl:
         extractionSysPrompt = fl.read()
 
         if len(extractionSysPrompt) == 0:
@@ -223,7 +219,7 @@ def x_agent() -> dict:
         logger.info(f'[\033[91mx-agent] Found {len(report.output.events)}\033[0m')
 
     fighterPrompt = ''
-    with open('./fighterReportsSysPrompt.txt', 'r') as fl:
+    with open('./prompts/fighterReportsSysPrompt.txt', 'r') as fl:
         fighterPrompt = fl.read()
         if len(fighterPrompt) ==0:
             raise Exception("Could not load Fighter Reports System Prompt...")
@@ -260,7 +256,7 @@ def x_agent() -> dict:
         logger.info(f"\033[91m[x-agent] [Fighter] Completed report for fighter : {fighter.fullname} ✅\033[0m")
 
     eventPrompt=''
-    with open('./eventReportsSysPrompt.txt', 'r') as fl:
+    with open('./prompts/eventReportsSysPrompt.txt', 'r') as fl:
         eventPrompt = fl.read()
         if len(eventPrompt) ==0:
             raise Exception("Could not load Event Reports System Prompt...")
@@ -299,22 +295,18 @@ def x_agent() -> dict:
         }
     
 
-    if output['fighters'] != None:
-        output["fighters"] = output["fighters"].encode("utf-8").decode("unicode_escape")
-        with open('fighterReport.txt' , 'w') as fl:
-            fl.write(output['fighters'])
-        with open('fighterReport.txt' , 'r') as fl:
-            output['fighters'] = fl.read()
-
-    if output['events'] != None:
-        output["events"] = output["events"].encode("utf-8").decode("unicode_escape")
-        with open('eventReport.txt' , 'w') as fl:
-            fl.write(output['events'])
-        with open('eventReport.txt' , 'r') as fl:
-            output['events'] = fl.read()
+    # if output['fighters'] != None:
+    #     output["fighters"] = output["fighters"].encode("utf-8").decode("unicode_escape")
+    #     with open('./misc/fighterReport.txt' , 'w') as fl:
+    #         fl.write(output['fighters'])
+    #
+    # if output['events'] != None:
+    #     output["events"] = output["events"].encode("utf-8").decode("unicode_escape")
+    #     with open('./misc/eventReport.txt' , 'w') as fl:
+    #         fl.write(output['events'])
 
 
-    with open('./latestReport.txt', 'w') as fl:
+    with open('./misc/latestReport.txt', 'w') as fl:
         filestr = ''
         for text in output['fighters']:
             filestr += text
@@ -323,26 +315,5 @@ def x_agent() -> dict:
         fl.write(filestr)
         
     return output
-
-
-
-async def deprecated_x_agent()-> str:
-    accounts: dict= {}
-    with open("./accountsX.json" , "r") as fl:
-        try:
-            accounts = json.loads(fl.read())
-        except Exception as e:
-            print(f"Exception {e}")
-
-    texts = createPostList(accounts["account_ids"])
-
-    agent= createAgent()
-
-    input = {
-        "texts" : texts
-    }
-
-    print("Enterning the agent...")
-    response = await agent.run( user_prompt= "Below follow the posts: " + json.dumps(input) )
 
     return response.output
