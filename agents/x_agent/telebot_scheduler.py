@@ -230,12 +230,12 @@ def report_no_handler( chat_id=None , message_thread_id= None):
 
 if __name__== "__main__":
     # bot.infinity_polling()
-    
     schedule.every().day.at(os.getenv("SCHEDULER_ON") ).do(report_no_handler)
 
+    wait_period= int(os.getenv("SCHEDULER_REPEAT") or 5)
     while True:
         schedule.run_pending()
-        time.sleep(60)
+        time.sleep( wait_period )
         logger.info("waiting...")
 
     # report_no_handler(os.getenv("PERSONAL_CHAT_ID"), message_thread_id=None)

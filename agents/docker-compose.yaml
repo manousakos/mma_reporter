@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  report_agent:
+    container_name: report_agent
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    environment:
+      - RAPID_API_KEY=${RAPID_API_KEY}
+      - MISTRAL_SMALL=${MISTRAL_SMALL}
+      - MISRTRAL_MEDIUM=${MISRTRAL_MEDIUM}
+      - MINITRAL=${MINITRAL}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
+      - OLLAMA_URL=${OLLAMA_URL}
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+      - MILIE_TOKEN=${MILIE_TOKEN}
+      - MODELTYPE=${MODELTYPE}
+      - SCHEDULER_ON=${SCHEDULER_ON}
+      - SCHEDULER_REPEAT=${SCHEDULER_REPEAT}
+      - MESSAGE_MODE=${MESSAGE_MODE}
+      - PERSONAL_CHAT_ID=${PERSONAL_CHAT_ID}
+      - BUSINNES_MEN_MSG_THREAD_ID=${BUSINNES_MEN_MSG_THREAD_ID}
+      - BUSINNES_MEN_CHAT_ID=${BUSINNES_MEN_CHAT_ID}

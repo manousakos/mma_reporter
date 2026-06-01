@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 WORKDIR /app
-COPY . . 
+COPY ./x_agent . 
 RUN mkdir misc
 RUN pip install --no-cache-dir -r ./requirements.txt
 
