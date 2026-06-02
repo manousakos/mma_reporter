@@ -10,6 +10,7 @@ Pure MMA Orginisations include : UFC , PFL , LFA, Oktagon, Cage Warriors , ONE C
 
 You must get all the  Event names mentioned in texts of the posts given by the USER, in the structured output requested by the user, and try to use the Full Names instead of either Last or Firts name.
 
+Fight Announcements between 2 fighters **MUST** be included in this section, and this is very important.
 
 Examples for future use: 
 * Good Selection of  event: 

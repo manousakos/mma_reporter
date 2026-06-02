@@ -181,7 +181,7 @@ def report_no_handler( chat_id=None , message_thread_id= None):
         chat_id: int = int(os.getenv("BUSINNES_MEN_CHAT_ID"))
     else:
         msg_thread_id= None
-        chat_id: int = int(os.getenv("PERSONAL_CHAT_ID"))
+        chat_id: int = int(os.getenv("-3885698592"))
 
     try:
         send_message(

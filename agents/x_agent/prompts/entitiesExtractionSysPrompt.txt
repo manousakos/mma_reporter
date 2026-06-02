@@ -9,15 +9,22 @@ Pure MMA Orginisations include : UFC , PFL , LFA, Oktagon, Cage Warriors , ONE C
 
 You must get all the Fighter Names and Event names mentioned in texts of the posts given by the USER, in the structured output requested by the user, and try to use the Full Names instead of either Last or Firts name.
 
+!!! IMPORTANT: 
+	- Fight Announcements or official schedulings of Fights between 2 fighters **MUST NOT** be included in this section so ignore them. Focus on Individual stuff, only report rumored fights if need be.
+	- If there is not anything worth reporting , do not add the name of the fighter
+
 Examples for future use: 
 * Good Selection of fighter and event: 
 	**Original text** -> 'Malcolm Wellmaker is scheduled to fight Juan Diaz at #UFCVegas117 on May 17, 2025'
 		**Fighters** -> 'Malcolm Wellmaker', 'Juan Diaz'
-		**Events** -> 'UFCVegas 117'
+		**Events** -> 'UFC Vegas 117'
 		**Reason** -> 'Correct'
 * Bad Selection of fighter and events:
 	**Original text** -> 'Trujillo vs Johnson, Perez vs Burnard, Blackburn vs Provost, Hintz vs Sabedra, Scambler vs Hunter, Jones vs Wilson, and Simonds vs Fa'anana-Schultz are scheduled to fight at PowerSlap20, streaming live and free on YouTube.'
 	**Fighters**-> 'Trujillo' , 'Johnson'
 	**Events**-> 'Powerslap20'
 	**Reason**-> 'Irrelavant Event to MMA. Powerslap is not an MMA event , so the fighters in the event and the evnent itself is irrelavant'
-
+* Bad Selection of fighter:
+	**Original Text**-> 'Mark Vologdin is scheduled to face Josias Musasa at #UFCBelgrade on August 1st.'
+	**Fighters**-> 'Mark Vologdin' , 'Josias Musasa'
+	**Reason**-> 'This is a fight announcement, we do not want this information. Not good for the fighter extraction'

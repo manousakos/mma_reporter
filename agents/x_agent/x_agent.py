@@ -1,5 +1,6 @@
+# -------------------------------- IMPORTS --------------------------------
 import json
-from typing import Literal
+from typing import Literal, final
 from dotenv import load_dotenv
 from pydantic_ai.models import Model
 import requests
@@ -21,8 +22,7 @@ from logger  import logger
 load_dotenv()
 
 
-
-
+# -------------------------------- CODE --------------------------------
 
 x_accounts = [
     "danawhite",
@@ -179,6 +179,69 @@ def createAgent(modelType : Literal['mistral', 'ollama'] = 'mistral')-> Agent:
         print(e)
         raise Exception(e)
 
+
+def generateFighterReports( smallcounter , report: ReportComponents , agent):
+    fighterPrompt = ''
+    with open('./prompts/fighterReportsSysPrompt.txt', 'r') as fl:
+        fighterPrompt = fl.read()
+        if len(fighterPrompt) ==0:
+            raise Exception("Could not load Fighter Reports System Prompt...")
+
+    for fighter in report.entities.fighters:
+        # if smallcounter == 5:
+        #     break
+        logger.info(f"\033[91m[x-agent] [Fighter] Generating report for fighter : {fighter.fullname} --- {smallcounter+1}/{len(report.entities.fighters)}\033[0m")
+        try:
+            fighterReports = agent.run_sync(
+                user_prompt= f"Fill the in information for the Fighter : {fighter.fullname} from the given posts. Below follow the posts: " + json.dumps(report.input )+ f"\n\nHere is the current generated report, use it to avoid duplicating, which you must not do: {json.dumps(report.fighters)}",
+                output_type= FighterReports,
+                instructions=fighterPrompt
+            )
+
+            time.sleep(5)
+            report.fighters[fighter.fullname] = fighterReports.output.reports
+
+            if len(fighterReports.output.reports)>0:
+                report.output['fighters'] += f"*{fighter.fullname}*:\n"
+                for smallReps in fighterReports.output.reports:
+                    report.output['fighters']+= f"\t- {smallReps}\n"
+        except UnexpectedModelBehavior as e:
+            logger.info(f"[x-agent] Encountered Error: {e}")
+            continue
+        smallcounter+=1
+        logger.info(f"\033[91m[x-agent] [Fighter] Completed report for fighter : {fighter.fullname} ✅\033[0m")
+    return smallcounter , report 
+
+def generateEventReports(smallcounter , report: ReportComponents , agent):
+    eventPrompt=''
+    with open('./prompts/eventReportsSysPrompt.txt', 'r') as fl:
+        eventPrompt = fl.read()
+        if len(eventPrompt) ==0:
+            raise Exception("Could not load Event Reports System Prompt...")
+
+    for event in report.entities.events:
+        logger.info(f"\033[91m[x-agent] [Event] Generating report for event : {event.name} --- {smallcounter+1}/{len(report.entities.events)}\033[0m")
+        try:
+            eventReports =   agent.run_sync(
+                user_prompt= f"Fill the in information for the event : {event.name} from the given posts. Below follow the posts: " + json.dumps(report.input),
+                output_type= EventReports,
+                instructions=eventPrompt
+            )
+            time.sleep(5)
+
+            report.events[event.name] = eventReports.output.reports
+
+            if len(eventReports.output.reports)>0:
+                report.output['events'] += f"*{event.name}*:\n"
+                for smallReps in eventReports.output.reports:
+                    report.output['events']+= f"\t- {smallReps}\n"
+        except UnexpectedModelBehavior as e:
+            logger.info(f"\n\n[x-agent] Encountered Error: {e}")
+            continue
+        smallcounter+=1
+        logger.info(f"\033[91m[x-agent] [x-agent][Event] Completed report for event : {event.name} ✅\033[0m")
+    return smallcounter , report 
+
 def x_agent() -> dict:
     accounts: dict= {}
     logger.info("\033[91m[x-agent] Starting Generating Report\033[0m")
@@ -187,16 +250,27 @@ def x_agent() -> dict:
             accounts = json.loads(fl.read())
         except Exception as e:
             print(f"Exception {e}")
-    texts = createPostList(accounts["account_ids"])
+    texts: list= []
+
+    # texts = createPostList(accounts["account_ids"])
+    #
+    # with open("./posts.json" ,"w") as fl:
+    #     fl.write(json.dumps({
+    #         "posts": texts
+    #     }))
+
+    # with open("./posts.json" ,"r") as fl:
+    #     posts= json.loads(fl.read())
+    #     texts = posts["posts"]
 
     agent= createAgent(modelType = 'mistral')
 
-    input = {
-        "texts" : texts
-    }
     
     finalReport = Report()
-    output ={
+
+    finalReport.input = texts
+
+    finalReport.output ={
         "fighters" : f"Report {finalReport.created_at}\n",
         "events" : f"Report {finalReport.created_at}\n"
     } 
@@ -208,115 +282,50 @@ def x_agent() -> dict:
         if len(extractionSysPrompt) == 0:
             raise Exception("Could not load Entities Extraction System Prompt...")
     report =  agent.run_sync(
-        user_prompt= "Below follow the posts: " + json.dumps(input) ,
+        user_prompt= "Below follow the posts: " + json.dumps(finalReport.input) ,
         instructions=  extractionSysPrompt,
         output_type= ReportComponents
     )
+
+    finalReport.entities= report.output
 
     if len(report.output.fighters) >0:
         logger.info(f'[\033[91mx-agent] Found {len(report.output.fighters)}\033[0m')
     if len(report.output.events) >0:
         logger.info(f'[\033[91mx-agent] Found {len(report.output.events)}\033[0m')
 
-    fighterPrompt = ''
-    with open('./prompts/fighterReportsSysPrompt.txt', 'r') as fl:
-        fighterPrompt = fl.read()
-        if len(fighterPrompt) ==0:
-            raise Exception("Could not load Fighter Reports System Prompt...")
 
-    output['fighters'] += "`FIGHTS:`\n"
+    finalReport.output['fighters'] += "`FIGHTS:`\n"
 
     logger.info("\033[91m[x-agent] Starting generating per Fighter Reports\033[0m")
+
     smallcounter =0
+    smallcounter , finalReport = generateFighterReports(smallcounter , finalReport, agent)
 
-    time.sleep(5)
-    for fighter in report.output.fighters:
-        # if smallcounter == 5:
-        #     break
-        logger.info(f"\033[91m[x-agent] [Fighter] Generating report for fighter : {fighter.fullname} --- {smallcounter+1}/{len(report.output.fighters)}\033[0m")
-        try:
-            fighterReports = agent.run_sync(
-                user_prompt= f"Fill the in information for the Fighter : {fighter.fullname} from the given posts. Below follow the posts: " + json.dumps(input),
-                output_type= FighterReports,
-                instructions=fighterPrompt
-            )
 
-            time.sleep(5)
-            finalReport.fighters[fighter.fullname] = fighterReports.output.reports
 
-            if len(fighterReports.output.reports)>0:
-                output['fighters'] += f"*{fighter.fullname}*:\n"
-                for smallReps in fighterReports.output.reports:
-                    output['fighters']+= f"\t- {smallReps}\n"
-        except UnexpectedModelBehavior as e:
-            logger.info(f"[x-agent] Encountered Error: {e}")
-            continue
-        smallcounter+=1
 
-        logger.info(f"\033[91m[x-agent] [Fighter] Completed report for fighter : {fighter.fullname} ✅\033[0m")
-
-    eventPrompt=''
-    with open('./prompts/eventReportsSysPrompt.txt', 'r') as fl:
-        eventPrompt = fl.read()
-        if len(eventPrompt) ==0:
-            raise Exception("Could not load Event Reports System Prompt...")
-
-    output['events'] += "`EVENTS:`\n"
-
+    finalReport.output['events'] += "`EVENTS:`\n"
     smallcounter = 0
-    for event in report.output.events:
-        logger.info(f"\033[91m[x-agent] [Event] Generating report for event : {event.name} --- {smallcounter+1}/{len(report.output.events)}\033[0m")
-        try:
-            eventReports =   agent.run_sync(
-                user_prompt= f"Fill the in information for the event : {event.name} from the given posts. Below follow the posts: " + json.dumps(input),
-                output_type= EventReports,
-                instructions=eventPrompt
-            )
-            time.sleep(5)
-
-            finalReport.events[event.name] = eventReports.output.reports
-
-            if len(eventReports.output.reports)>0:
-                output['events'] += f"*{event.name}*:\n"
-                for smallReps in eventReports.output.reports:
-                    output['events']+= f"\t- {smallReps}\n"
-        except UnexpectedModelBehavior as e:
-            logger.info(f"\n\n[x-agent] Encountered Error: {e}")
-            continue
-        smallcounter+=1
-        logger.info(f"\033[91m[x-agent] [x-agent][Event] Completed report for event : {event.name} ✅\033[0m")
+    smallcounter , finalReport = generateEventReports(smallcounter , finalReport,  agent)
 
     logger.info("\033[91mReport Complete\033[0m")
 
-    if output["events"] == None and output['fighters'] == None:
+    if finalReport.output["events"] == None and finalReport.output['fighters'] == None:
         return {
             "events" : "This is empty",
             "fighters": "This is empty"
         }
-    
-
-    # if output['fighters'] != None:
-    #     output["fighters"] = output["fighters"].encode("utf-8").decode("unicode_escape")
-    #     with open('./misc/fighterReport.txt' , 'w') as fl:
-    #         fl.write(output['fighters'])
-    #
-    # if output['events'] != None:
-    #     output["events"] = output["events"].encode("utf-8").decode("unicode_escape")
-    #     with open('./misc/eventReport.txt' , 'w') as fl:
-    #         fl.write(output['events'])
-
 
     with open('./misc/latestReport.txt', 'w') as fl:
         filestr = ''
-        for text in output['fighters']:
+        for text in finalReport.output['fighters']:
             filestr += text
-        for text in output['events']:
+        for text in finalReport.output['events']:
             filestr += text
         fl.write(filestr)
         
-    return output
-
-    return response.output
+    return finalReport.output
 
 if __name__ == "__main__":
     x_agent()
