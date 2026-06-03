@@ -49,7 +49,7 @@ def splitMessage(message : str) -> list[str]:
             prevCheckpoint = prevCheckpoint + div
 
         messageCheckpoints = sorted(messageCheckpoints)
-        print(messageCheckpoints)
+        logger.debug(messageCheckpoints)
 
         prevCheckpoint= 0
         for checkpoint in messageCheckpoints:
@@ -215,7 +215,7 @@ def report_no_handler( chat_id=None , message_thread_id= None):
             )
 
     except Exception as e:
-        print(f'Error : {e}')
+        logger.error(f'Error : {e}')
         send_message(
             chat_id= chat_id,
             text = msg,
@@ -230,13 +230,15 @@ def report_no_handler( chat_id=None , message_thread_id= None):
 
 if __name__== "__main__":
     # bot.infinity_polling()
-    schedule.every().day.at(os.getenv("SCHEDULER_ON") ).do(report_no_handler)
+    # schedule.every().day.at(os.getenv("SCHEDULER_ON") ).do(report_no_handler)
 
-    wait_period= int(os.getenv("SCHEDULER_REPEAT") or 5)
-    while True:
-        schedule.run_pending()
-        time.sleep( wait_period )
-        logger.info("waiting...")
+    report_no_handler()
+
+    # wait_period= int(os.getenv("SCHEDULER_REPEAT") or 5)
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep( wait_period )
+    #     logger.info("waiting...")
 
     # report_no_handler(os.getenv("PERSONAL_CHAT_ID"), message_thread_id=None)
     # report_no_handler(os.getenv("BUSINNES_MEN_CHAT_ID"), message_thread_id=os.getenv("BUSINNES_MEN_MSG_THREAD_ID"))

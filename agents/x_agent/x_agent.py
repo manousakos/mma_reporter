@@ -75,7 +75,7 @@ def getPostsById(id: str , cursor: str | None = None) -> tuple:
         return response, next_cursor
 
     else:
-        print(f"Error: {response.status_code}")
+        logger.error(f"Error: {response.status_code}")
         return None,None
 
 def getTodaysPostsById(id) -> list:
@@ -98,15 +98,14 @@ def getTodaysPostsById(id) -> list:
         try:
             date_object = datetime.datetime.strptime(dt, '%a %b %d %H:%M:%S %z %Y')
         except Exception as e:
-            print(e)
-            print(f"Date : {dt}")
+            logger.error(e)
         return date_object
 
     dateNow= datetime.datetime.now(datetime.timezone.utc)
     postDate : datetime.datetime | None= None
     texts = []
     responseDict , cursor = getPostsById(id)
-    print(f"Starting for id: {id}...")
+    logger.debug(f"Starting for id: {id}...")
     for post in responseDict['timeline']:
         texts.append(post["text"])
         if transformDate(post["created_at"]) == None:
@@ -115,7 +114,7 @@ def getTodaysPostsById(id) -> list:
 
     if(postDate):
         while (dateNow - postDate).days < 1 and cursor:
-            print("Getting more posts...")
+            logger.debug("Getting more posts...")
             responseDict, cursor = getPostsById(id, cursor)
             for post in responseDict['timeline']:
                 postDate = transformDate(post["created_at"])
@@ -137,7 +136,7 @@ def createPostList(account_ids: list):
                 texts.append(response_texts)
                 break
             except Exception as e:
-                print(f"For id : {account_id} ,times : {counter+1}\nException {e} ")
+                logger.error(f"For id : {account_id} ,times : {counter+1}\nException {e} ")
                 counter += 1
                 continue
         counter = 0
@@ -176,7 +175,7 @@ def createAgent(modelType : Literal['mistral', 'ollama'] = 'mistral')-> Agent:
         return agent
 
     except Exception as e:
-        print(e)
+        logger.error(e)
         raise Exception(e)
 
 
@@ -249,15 +248,15 @@ def x_agent() -> dict:
         try:
             accounts = json.loads(fl.read())
         except Exception as e:
-            print(f"Exception {e}")
+            logger.error(f"Exception {e}")
     texts: list= []
 
-    # texts = createPostList(accounts["account_ids"])
-    #
-    # with open("./posts.json" ,"w") as fl:
-    #     fl.write(json.dumps({
-    #         "posts": texts
-    #     }))
+    texts = createPostList(accounts["account_ids"])
+
+    with open("./posts.json" ,"w") as fl:
+        fl.write(json.dumps({
+            "posts": texts
+        }))
 
     # with open("./posts.json" ,"r") as fl:
     #     posts= json.loads(fl.read())
@@ -282,7 +281,7 @@ def x_agent() -> dict:
         if len(extractionSysPrompt) == 0:
             raise Exception("Could not load Entities Extraction System Prompt...")
     report =  agent.run_sync(
-        user_prompt= "Below follow the posts: " + json.dumps(finalReport.input) ,
+        user_prompt= "Below follow the posts: " + json.dumps(finalReport.input) +"\n\nIf the only mention of a fighter/fighters is on a fight announcement/scheduling, avoid extracting it on the Fighters part , and extract it on the Events part ( critical distinction)." ,
         instructions=  extractionSysPrompt,
         output_type= ReportComponents
     )
