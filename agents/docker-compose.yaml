@@ -8,6 +8,7 @@ services:
       dockerfile: Dockerfile
 
     environment:
+      - TZ=Europe/Athens
       - RAPID_API_KEY=${RAPID_API_KEY}
       - MISTRAL_SMALL=${MISTRAL_SMALL}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY}
@@ -20,3 +21,4 @@ services:
       - PERSONAL_CHAT_ID=${PERSONAL_CHAT_ID}
       - BUSINNES_MEN_MSG_THREAD_ID=${BUSINNES_MEN_MSG_THREAD_ID}
       - BUSINNES_MEN_CHAT_ID=${BUSINNES_MEN_CHAT_ID}
+      - MMA_CHANNEL=${MMA_CHANNEL}
