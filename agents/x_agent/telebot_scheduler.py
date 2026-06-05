@@ -146,31 +146,31 @@ chat_id = { chat_id }
 
     return
 
+def send_message(chat_id: int, text: str, message_thread_id= None , parse_mode= None):
+    '''
+    Sends a message via the python Telebot package to telegram
+    Args:
+    '''
+
+    if not message_thread_id:
+        bot.send_message( 
+                chat_id= chat_id,
+                text= text,
+                parse_mode = None if not parse_mode else parse_mode
+            )
+    else:
+        bot.send_message( 
+                chat_id= chat_id,
+                text= text,
+                message_thread_id= message_thread_id,
+                parse_mode = None if not parse_mode else parse_mode
+            )
+    return
 
 def report_no_handler( chat_id=None , message_thread_id= None):
     '''
     Report handles that handles the call of the x_agent() and the return of the messages
     '''
-    def send_message(chat_id: int, text: str, message_thread_id= None , parse_mode= None):
-        '''
-        Sends a message via the python Telebot package to telegram
-        Args:
-        '''
-
-        if not message_thread_id:
-            bot.send_message( 
-                    chat_id= chat_id,
-                    text= text,
-                    parse_mode = None if not parse_mode else parse_mode
-                )
-        else:
-            bot.send_message( 
-                    chat_id= chat_id,
-                    text= text,
-                    message_thread_id= message_thread_id,
-                    parse_mode = None if not parse_mode else parse_mode
-                )
-        return
 
     responseMD:str = ''
     # msg_thread_id= None if not message_thread_id else message_thread_id 
@@ -221,24 +221,18 @@ def report_no_handler( chat_id=None , message_thread_id= None):
             text = msg,
             message_thread_id= msg_thread_id,
         )
-
-
     return
-
-
 
 
 if __name__== "__main__":
     # bot.infinity_polling()
-    # schedule.every().day.at(os.getenv("SCHEDULER_ON") ).do(report_no_handler)
 
-    report_no_handler()
+    # report_no_handler()
 
-    # wait_period= int(os.getenv("SCHEDULER_REPEAT") or 5)
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep( wait_period )
-    #     logger.info("waiting...")
+    schedule.every().day.at(os.getenv("SCHEDULER_ON") ).do(report_no_handler)
+    wait_period= int(os.getenv("SCHEDULER_REPEAT") or 5)
+    while True:
+        schedule.run_pending()
+        time.sleep( wait_period )
+        logger.info("waiting...")
 
-    # report_no_handler(os.getenv("PERSONAL_CHAT_ID"), message_thread_id=None)
-    # report_no_handler(os.getenv("BUSINNES_MEN_CHAT_ID"), message_thread_id=os.getenv("BUSINNES_MEN_MSG_THREAD_ID"))

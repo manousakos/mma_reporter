@@ -17,7 +17,7 @@ class EventName(BaseModel):
 
 class FighterReports(BaseModel):
     reports: list[str] =Field(
-        description="A list of reports for the Fighter the **User** asked for. The reports must be at **max 1 sentences** long and in **plaintext**, no markdown and make the reports consice. IMPORTANT: Fight announcement between fighters two fighters **SHOULD NOT** be reported, ignore them",
+        description="A list of reports for the Fighter the **User** asked for. The reports must be at **max 1 sentences** long and in **plaintext**, no markdown and make the reports consice. IMPORTANT: Reports like : `Fighter X is scheduled with fighte Y` should not be generated as we do not want fight announcements in fighter reports.",
         default=[]
     )
 
@@ -39,8 +39,24 @@ class Report:
     fighters:  dict = {}
     events: dict = {}
     input: list[str]= []
-    output= dict={}
+    output: dict={}
     report: str = ""
 
     def __init__(self):
         self.created_at = datetime.datetime.now().strftime("%A %d %B %Y")
+
+    def createReport(self):
+        for fighter,reports in self.fighters.items():
+            if len(reports)>0:
+                self.output['fighters'] += f"*{fighter}*:\n"
+                for smallReps in reports:
+                    self.output['fighters']+= f"\t- {smallReps}\n"
+
+
+        for event,reports in self.events.items():
+            if len(reports)>0:
+                self.output['events'] += f"*{event}*:\n"
+                for smallReps in reports:
+                    self.output['events']+= f"\t- {smallReps}\n"
+
+        return self.output
