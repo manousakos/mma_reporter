@@ -228,6 +228,22 @@ if __name__== "__main__":
     # bot.infinity_polling()
 
     # report_no_handler()
+    print(f'''
+RAPID_API_KEY={os.getenv("RAPID_API_KEY")}
+MISTRAL_SMALL={os.getenv("MISTRAL_SMALL")}
+MISTRAL_API_KEY={os.getenv("MISTRAL_API_KEY")}
+OLLAMA_MODEL={os.getenv("OLLAMA_MODEL")}
+OLLAMA_URL={os.getenv("OLLAMA_URL")}
+TELEGRAM_TOKEN={os.getenv("TELEGRAM_TOKEN")}
+SCHEDULER_ON={os.getenv("SCHEDULER_ON")}
+SCHEDULER_REPEAT={os.getenv("SCHEDULER_REPEAT")}
+LLM_CALL_TIMEOUT={os.getenv("LLM_CALL_TIMEOUT")}
+MESSAGE_MODE={os.getenv("MESSAGE_MODE")}
+PERSONAL_CHAT_ID={os.getenv("PERSONAL_CHAT_ID")}
+BUSINNES_MEN_MSG_THREAD_ID={os.getenv("BUSINNES_MEN_MSG_THREAD_ID")}
+BUSINNES_MEN_CHAT_ID={os.getenv("BUSINNES_MEN_CHAT_ID")}
+MMA_CHANNEL={os.getenv("MMA_CHANNEL")}
+''')
 
     schedule.every().day.at(os.getenv("SCHEDULER_ON") ).do(report_no_handler)
     wait_period= int(os.getenv("SCHEDULER_REPEAT") or 5)

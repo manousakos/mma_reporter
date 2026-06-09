@@ -86,7 +86,7 @@ def generateFighterReports( smallcounter , report: Report , agent):
                 instructions=fighterPrompt
             )
 
-            time.sleep(5)
+            time.sleep(int(os.getenv("LLM_CALL_TIMEOUT" or 10)))
             report.fighters[fighter.fullname] = fighterReports.output.reports
             print(f'Fighter reports exracted : {fighterReports.output.reports}')
 
@@ -112,7 +112,7 @@ def generateEventReports(smallcounter , report: Report, agent):
                 output_type= EventReports,
                 instructions=eventPrompt
             )
-            time.sleep(10)
+            time.sleep(int(os.getenv("LLM_CALL_TIMEOUT") or 10))
 
             report.events[event.name] = eventReports.output.reports
 
