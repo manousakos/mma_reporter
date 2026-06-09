@@ -1,6 +1,6 @@
-**/__pycache__/
-agents/x_agent/misc/
-agents/x_agent/.venv_temp/
-agents/.env
-agents/venv_temp/
+**/**/__pycache__/
+x_agent/misc/
+x_agent/.venv_temp/
+.env
+venv_temp/
 
