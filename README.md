@@ -1,5 +1,3 @@
-# MMA Report Agent
-
 This is an agent that generates daily reports out of the latest news of the MMA world.
 The vision is to create a subscription service based on this agent on the long run after the agent is supposedly characterised reliable.
 
